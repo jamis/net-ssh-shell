@@ -9,10 +9,12 @@ module Net
       attr_reader :session
       attr_reader :channel
       attr_reader :state
+      attr_reader :shell
       attr_reader :processes
 
-      def initialize(session)
+      def initialize(session, shell=:default)
         @session = session
+        @shell = shell
         @state = :closed
         @processes = []
       end
@@ -88,7 +90,11 @@ module Net
         def pty_requested(channel, success)
           @state = :shell
           raise "could not request pty for process manager" unless success
-          channel.exec("/bin/sh -l -i", &method(:shell_requested))
+          if shell == :default
+            channel.send_channel_request("shell", &method(:shell_requested))
+          else
+            channel.exec(shell, &method(:shell_requested))
+          end
         end
 
         def shell_requested(channel, success)
@@ -111,9 +117,12 @@ module Net
 end
 
 class Net::SSH::Connection::Session
-  # Provides a convenient way to initialize a SCP session given a Net::SSH
-  # session. Returns the Net::SCP instance, ready to use.
-  def shell
-    @shell ||= Net::SSH::Shell.new(self)
+  # Provides a convenient way to initialize a shell given a Net::SSH
+  # session. Yields the new shell if a block is given. Returns the shell
+  # instance.
+  def shell(*args)
+    shell = Net::SSH::Shell.new(self, *args)
+    yield shell if block_given?
+    return shell
   end
 end
