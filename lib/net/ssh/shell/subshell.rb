@@ -6,7 +6,7 @@ module Net; module SSH; class Shell
     private
 
       def on_stdout(ch, data)
-        if !callback || !callback.call(ch, data)
+        if !output!(data)
           ch.on_data(&method(:look_for_finalize_initializer))
           ch.send_data("export PS1='#{manager.separator} $?'\n")
         end

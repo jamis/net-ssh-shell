@@ -17,15 +17,35 @@ module Net
         @shell = shell
         @state = :closed
         @processes = []
+        @when_open = []
+        open
       end
 
-      def open!
+      def open(&callback)
         if closed?
           @state = :opening
           @channel = session.open_channel(&method(:open_succeeded))
           @channel.on_open_failed(&method(:open_failed))
+        end
+        when_open(&callback) if callback
+        self
+      end
+
+      def open!
+        if !open?
+          open if closed?
           session.loop { opening? }
         end
+        self
+      end
+
+      def when_open(&callback)
+        if open?
+          yield self
+        else
+          @when_open << callback
+        end
+        self
       end
 
       def open?
@@ -41,7 +61,6 @@ module Net
       end
 
       def execute(command, klass=Net::SSH::Shell::Process, &callback)
-        callback ||= Proc.new { |ch, data| print(data) }
         process = klass.new(self, command, callback)
         process.run if processes.empty?
         processes << process
@@ -49,7 +68,6 @@ module Net
       end
 
       def subshell(command, &callback)
-        callback ||= Proc.new { |ch, data| }
         execute(command, Net::SSH::Shell::Subshell, &callback)
       end
 
@@ -58,8 +76,16 @@ module Net
         wait!
       end
 
+      def busy?
+        opening? || processes.any?
+      end
+
       def wait!
-        session.loop { processes.any? }
+        session.loop { busy? }
+      end
+
+      def close!
+        channel.close if channel
       end
 
       def child_finished(child)
@@ -105,7 +131,11 @@ module Net
         end
 
         def look_for_initialization_done(channel, data)
-          @state = :open if data.include?(separator)
+          if data.include?(separator)
+            @state = :open
+            @when_open.each { |callback| callback.call(self) }
+            @when_open.clear
+          end
         end
 
         def on_close(channel)

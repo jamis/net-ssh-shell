@@ -1,52 +1,97 @@
 module Net; module SSH; class Shell
 
   class Process
+    attr_reader :state
     attr_reader :command
     attr_reader :manager
     attr_reader :callback
     attr_reader :exit_status
+    attr_reader :properties
 
     def initialize(manager, command, callback)
       @command = command
       @manager = manager
       @callback = callback
+      @properties = {}
+      @on_output = Proc.new { |p, data| print(data) }
+      @on_finish = nil
+      @state = :new
+    end
+
+    def [](key)
+      @properties[key]
+    end
+
+    def []=(key, value)
+      @properties[key] = value
+    end
+
+    def send_data(data)
+      manager.channel.send_data(data)
     end
 
     def run
-      manager.open!
-      manager.channel.on_data(&method(:on_stdout))
-      manager.channel.on_extended_data(&method(:on_stderr))
-      @master_onclose = manager.channel.on_close(&method(:on_close))
+      if state == :new
+        state = :starting
+        manager.open do
+          state = :running
+          manager.channel.on_data(&method(:on_stdout))
+          @master_onclose = manager.channel.on_close(&method(:on_close))
 
-      manager.channel.send_data(command + "\n")
+          send_data(command + "\n")
+          callback.call(self) if callback
+        end
+      end
+
       self
+    end
+
+    def starting?
+      state == :starting
     end
 
     def running?
-      exit_status.nil?
+      state == :running
+    end
+
+    def finished?
+      state == :finished
+    end
+
+    def busy?
+      starting? || running?
     end
 
     def wait!
-      manager.session.loop { running? }
+      manager.session.loop { busy? }
       self
+    end
+
+    def on_output(&callback)
+      @on_output = callback
+    end
+
+    def on_finish(&callback)
+      @on_finish = callback
     end
 
     private
 
+      def output!(data)
+        return unless @on_output
+        @on_output.call(self, data)
+      end
+
       def on_stdout(ch, data)
         if data.strip =~ /^#{manager.separator} (\d+)$/
           before = $`
-          callback.call(ch, before) unless before.empty?
+          output!(before) unless before.empty?
 
           ch.on_close(&@master_onclose)
           finished!($1)
         else
-          callback.call(ch, data)
+          output!(data)
         end
-      end
-
-      def on_stderr(ch, type, data)
-        puts "[stderr] #{data.inspect}"
       end
 
       def on_close(ch)
@@ -55,7 +100,9 @@ module Net; module SSH; class Shell
       end
 
       def finished!(status)
+        @state = :finished
         @exit_status = status.to_i
+        @on_finish.call(self) if @on_finish
         manager.child_finished(self)
       end
   end
