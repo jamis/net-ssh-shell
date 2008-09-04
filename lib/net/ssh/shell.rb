@@ -127,7 +127,7 @@ module Net
           @state = :initializing
           raise "could not request shell for process manager" unless success
           channel.on_data(&method(:look_for_initialization_done))
-          channel.send_data "export PS1='#{separator} $?'\n"
+          channel.send_data "export PS1=; echo #{separator} $?\n"
         end
 
         def look_for_initialization_done(channel, data)

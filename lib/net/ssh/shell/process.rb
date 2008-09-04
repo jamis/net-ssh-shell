@@ -38,7 +38,11 @@ module Net; module SSH; class Shell
           manager.channel.on_data(&method(:on_stdout))
           @master_onclose = manager.channel.on_close(&method(:on_close))
 
-          send_data(command + "\n")
+          cmd = command.dup
+          cmd << ";" if cmd !~ /[;&]$/
+          cmd << " echo #{manager.separator} $?"
+
+          send_data(cmd + "\n")
           callback.call(self) if callback
         end
       end
