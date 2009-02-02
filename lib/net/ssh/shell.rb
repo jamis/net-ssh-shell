@@ -89,22 +89,28 @@ module Net
       end
 
       def child_finished(child)
+        channel.on_close(&method(:on_channel_close))
         processes.delete(child)
         processes.first.run if processes.any?
       end
 
       def separator
         @separator ||= begin
-          s = Digest::SHA1.hexdigest([session.host, Time.now.to_i, Time.now.usec, rand(0xFFFFFFFF)].join(":"))
+          s = Digest::SHA1.hexdigest([session.object_id, object_id, Time.now.to_i, Time.now.usec, rand(0xFFFFFFFF)].join(":"))
           s << Digest::SHA1.hexdigest(s)
         end
+      end
+
+      def on_channel_close(channel)
+        @state = :closed
+        @channel = nil
       end
 
       private
 
         def open_succeeded(channel)
           @state = :pty
-          channel.on_close(&method(:on_close))
+          channel.on_close(&method(:on_channel_close))
           channel.request_pty(:modes => { Net::SSH::Connection::Term::ECHO => 0 }, &method(:pty_requested))
         end
 
@@ -136,11 +142,6 @@ module Net
             @when_open.each { |callback| callback.call(self) }
             @when_open.clear
           end
-        end
-
-        def on_close(channel)
-          @state = :closed
-          @channel = nil
         end
     end
   end

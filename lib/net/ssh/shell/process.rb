@@ -90,8 +90,6 @@ module Net; module SSH; class Shell
         if data.strip =~ /^#{manager.separator} (\d+)$/
           before = $`
           output!(before) unless before.empty?
-
-          ch.on_close(&@master_onclose)
           finished!($1)
         else
           output!(data)
@@ -99,7 +97,7 @@ module Net; module SSH; class Shell
       end
 
       def on_close(ch)
-        @master_onclose.call(ch)
+        manager.on_channel_close(ch)
         finished!(-1)
       end
 
