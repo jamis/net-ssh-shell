@@ -24,6 +24,9 @@ In a nutshell:
       sh.execute "pwd"
       sh.execute "export FOO=bar"
       sh.execute "echo $FOO"
+      p=sh.execute "grep dont /tmp/notexist"
+      puts "Exit Status:#{p.exit_status}"
+      puts "Command Executed:#{p.command}"
     end
   end
 
