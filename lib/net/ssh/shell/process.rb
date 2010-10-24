@@ -40,7 +40,7 @@ module Net; module SSH; class Shell
 
           cmd = command.dup
           cmd << ";" if cmd !~ /[;&]$/
-          cmd << " echo #{manager.separator} $?"
+          cmd << " DONTEVERUSETHIS=$?; echo #{manager.separator} $DONTEVERUSETHIS; echo \"exit $DONTEVERUSETHIS\"|sh"
 
           send_data(cmd + "\n")
           callback.call(self) if callback
