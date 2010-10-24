@@ -15,9 +15,10 @@ One of the significant benefits you get from this library versus using Net::SSH 
 
 In a nutshell:
 
+  require 'net/ssh'
   require 'net/ssh/shell'
 
-  Net::SSH::Start('host', 'user') do |ssh|
+  Net::SSH::start('host', 'user') do |ssh|
     ssh.shell do |sh|
       sh.execute "cd /usr/local"
       sh.execute "pwd"
