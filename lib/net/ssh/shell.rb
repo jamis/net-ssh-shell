@@ -90,7 +90,7 @@ module Net
       end
 
       def child_finished(child)
-        channel.on_close(&method(:on_channel_close))
+        channel.on_close(&method(:on_channel_close)) if !channel.nil?
         processes.delete(child)
         processes.first.run if processes.any?
       end
