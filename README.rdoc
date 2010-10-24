@@ -41,8 +41,17 @@ If you want to use any of the Rake tasks, you'll need:
 * Echoe (for the Rakefile)
 
 == INSTALL:
+This gem is not yet on rubygems , so you have to install it from this source
 
-* gem install net-ssh-shell (might need sudo privileges)
+* gem install net-ssh-shell
+ERROR: could not find gem net-ssh-shell locally or in a repository
+
+Therefor you need to build the gem yourself:
+* git clone http://github.com/jedi4ever/net-ssh-shell.git
+* cd net-ssh-shell
+* gem install echoe
+* rake gem
+* gem install pkg/net-ssh-shell-0.1.0.gem (might need sudo privileges)
 
 == LICENSE:
 
