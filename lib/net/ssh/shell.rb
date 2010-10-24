@@ -74,6 +74,7 @@ module Net
       def execute!(command, &callback)
         execute(command, &callback)
         wait!
+	return process
       end
 
       def busy?
