@@ -14,6 +14,7 @@ module Net; module SSH; class Shell
       @callback = callback
       @properties = {}
       @on_output = Proc.new { |p, data| print(data) }
+      @on_error_output = Proc.new { |p, data| print(data) }
       @on_finish = nil
       @state = :new
     end
@@ -36,6 +37,7 @@ module Net; module SSH; class Shell
         manager.open do
           state = :running
           manager.channel.on_data(&method(:on_stdout))
+          manager.channel.on_extended_data(&method(:on_stderr))
           @master_onclose = manager.channel.on_close(&method(:on_close))
 
           cmd = command.dup
@@ -75,6 +77,10 @@ module Net; module SSH; class Shell
       @on_output = callback
     end
 
+    def on_error_output(&callback)
+      @on_error_output = callback
+    end
+
     def on_finish(&callback)
       @on_finish = callback
     end
@@ -94,6 +100,11 @@ module Net; module SSH; class Shell
         else
           output!(data)
         end
+      end
+
+      def on_stderr(ch, type, data)
+        return unless @on_error_output
+        @on_error_output.call(self, data)
       end
 
       def on_close(ch)
