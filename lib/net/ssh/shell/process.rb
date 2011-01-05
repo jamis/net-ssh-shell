@@ -36,7 +36,7 @@ module Net; module SSH; class Shell
         manager.open do
           state = :running
           manager.channel.on_data(&method(:on_stdout))
-          @master_onclose = manager.channel.on_close(&method(:on_close))
+          manager.channel.on_close(&method(:on_close))
 
           cmd = command.dup
           cmd << ";" if cmd !~ /[;&]$/
