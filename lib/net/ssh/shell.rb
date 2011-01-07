@@ -11,6 +11,7 @@ module Net
       attr_reader :state
       attr_reader :shell
       attr_reader :processes
+      attr_accessor :default_process_class
 
       def initialize(session, shell=:default)
         @session = session
@@ -18,6 +19,7 @@ module Net
         @state = :closed
         @processes = []
         @when_open = []
+        @default_process_class = Net::SSH::Shell::Process
         open
       end
 
@@ -60,7 +62,8 @@ module Net
         !open? && !closed?
       end
 
-      def execute(command, klass=Net::SSH::Shell::Process, &callback)
+      def execute(command, klass=nil, &callback)
+        klass ||= default_process_class
         process = klass.new(self, command, callback)
         process.run if processes.empty?
         processes << process
