@@ -40,12 +40,13 @@ module Net; module SSH; class Shell
           manager.channel.on_extended_data(&method(:on_stderr))
           manager.channel.on_close(&method(:on_close))
 
+          callback.call(self) if callback
+
           cmd = command.dup
           cmd << ";" if cmd !~ /[;&]$/
           cmd << " DONTEVERUSETHIS=$?; echo #{manager.separator} $DONTEVERUSETHIS; echo \"exit $DONTEVERUSETHIS\"|sh"
 
           send_data(cmd + "\n")
-          callback.call(self) if callback
         end
       end
 
